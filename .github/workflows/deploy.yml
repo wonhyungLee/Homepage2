@@ -1,8 +1,9 @@
-name: Auto-Deploy to Oracle Cloud
+name: Deploy to Oracle Cloud
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main  # main 브랜치에 푸시될 때마다 실행
 
 jobs:
   deploy:
@@ -10,21 +11,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
-    - name: Add SSH key and known hosts
+    - name: Deploy to Oracle Cloud
+      env:
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        REMOTE_DIR: /path/to/your/webroot
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-
-    - name: SSH into Oracle Cloud Server
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # 여기에 서버에서 실행할 명령어 추가
-          echo "배포 시작!"
+        ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY ubuntu@$SERVER_IP "cd $REMOTE_DIR && git pull origin main"
